@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="IT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IL PERCORSO DELLE ALLEANZE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --fluo-green: #39FF14; --super-purple: #9D00FF; --hero-red: #FF0000;
+            --hero-yellow: #FFEF00; --turbo-cyan: #00FFFF; --bonus-blue: #2196F3;
+            --stop-orange: #FF4500;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif; background: #0a0a12; color: white;
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        .game-title { 
+            color: var(--hero-yellow); font-size: 2rem; margin: 10px 0; text-align: center;
+            font-weight: 900; text-transform: uppercase; text-shadow: 3px 3px 0px var(--hero-red);
+        }
+        
+        .main-container { 
+            display: flex; flex-grow: 1; width: 100vw; padding: 0 20px; gap: 15px; 
+            align-items: center; height: 70vh;
+        }
+        #sidebar { width: 260px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+        
+        .legend {
+            background: rgba(255, 255, 255, 0.15); border: 2px solid #777; border-radius: 12px;
+            padding: 12px; width: 100%; font-size: 0.85rem; margin-bottom: 12px;
+        }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; font-weight: 900; gap: 10px; line-height: 1.2; }
+        
+        #cap-img { width: auto; height: 110px; object-fit: contain; }
+        .cap-bubble {
+            background: white; color: black; padding: 12px; border-radius: 12px;
+            font-weight: 900; font-size: 0.85rem; border: 3px solid var(--hero-red);
+            box-shadow: 4px 4px 0px var(--super-purple); text-align: center;
+            width: 100%; text-transform: uppercase; min-height: 90px; display: flex; align-items: center; justify-content: center;
+        }
+
+        #game-area { flex-grow: 1; position: relative; background: rgba(255, 255, 255, 0.05); border-radius: 25px; border: 2px solid #333; height: 100%; overflow: hidden; }
+        #path-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        #main-path-line { fill: none; stroke: #FFFF00; stroke-width: 3; stroke-dasharray: 10,10; stroke-opacity: 0.3; }
+
+        .cell {
+            position: absolute; width: 62px; height: 62px; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 0.85rem; color: black; border-radius: 10px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.3); text-align: center; padding: 4px; z-index: 2; overflow: hidden;
+        }
+
+        .c-0 { background: var(--fluo-green); } .c-1 { background: var(--super-purple); color: white; }
+        .c-2 { background: var(--hero-red); color: white; } .c-3 { background: var(--hero-yellow); }
+        .cell-start { font-size: 2.8rem !important; background: white !important; }
+        .cell-cup { font-size: 2.8rem !important; background: var(--hero-yellow) !important; }
+        .cell-turbo { background: white !important; border: 3px solid var(--turbo-cyan); color: var(--super-purple) !important; font-size: 1.8rem !important; }
+        .cell-bonus { background: var(--bonus-blue) !important; border: 3px solid white; color: white !important; font-size: 1.8rem !important; }
+        .cell-amnesia { background: #222 !important; border: 3px solid #000; color: white !important; font-size: 1.8rem !important; }
+        .cell-stop { background: var(--stop-orange) !important; color: white !important; font-size: 1.2rem !important; flex-direction: column; }
+        .stop-text { font-size: 0.6rem; font-weight: 900; }
+
+        #setup-screen, #name-screen, #word-modal {
+            position: fixed; inset: 0; background: rgba(5, 5, 15, 0.98);
+            z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+        }
+
+        .modal-content {
+            background: #1e1e2f; padding: 20px; border: 10px solid var(--hero-yellow);
+            border-radius: 40px; text-align: center; width: 95%; max-width: 600px;
+            height: 92vh; display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 0 60px rgba(0,0,0,1); overflow: hidden;
+        }
+
+        .modal-header { font-size: 2.2rem; color: var(--hero-yellow); font-weight: 900; text-transform: uppercase; margin: 0; }
+        .img-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 20px; margin: 10px 0; border: 3px solid rgba(255,255,255,0.1); overflow: hidden; }
+        #cell-img { max-height: 100%; max-width: 100%; display: none; object-fit: contain; border-radius: 10px; filter: drop-shadow(0 0 10px var(--turbo-cyan)); }
+        .desc-box { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 15px; margin-bottom: 10px; }
+        #display-desc { font-size: 1.4rem; color: white; font-weight: 900; text-transform: uppercase; margin: 0; line-height: 1.2; }
+        .btn-action { font-family: 'Roboto', sans-serif; font-weight: 900; font-size: 1.3rem; padding: 12px 35px; cursor: pointer; background: var(--super-purple); color: white; border: none; border-radius: 12px; margin: 5px; text-transform: uppercase; box-shadow: 0 4px 0 #4b0082; }
+        
+        .player-token { width: 42px; height: 42px; position: absolute; z-index: 100; transition: all 0.6s ease-in-out; font-size: 2.4rem; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 0 5px black); }
+        .ui-panel { height: 140px; background: #111; display: flex; align-items: center; justify-content: center; gap: 30px; border-top: 5px solid var(--hero-yellow); width: 100%; }
+        
+        .dice-container { width: 80px; height: 80px; perspective: 600px; cursor: pointer; }
+        #dice-visual { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: rotateX(-20deg) rotateY(-20deg); }
+        .dice-face { position: absolute; width: 80px; height: 80px; background: white; border: 2px solid #ccc; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: black; backface-visibility: hidden; }
+        .f-1 { transform: rotateY(0deg) translateZ(40px); }
+        .f-2 { transform: rotateY(90deg) translateZ(40px); }
+        .f-3 { transform: rotateY(180deg) translateZ(40px); }
+        .f-4 { transform: rotateY(-90deg) translateZ(40px); }
+        .f-5 { transform: rotateX(90deg) translateZ(40px); }
+        .f-6 { transform: rotateX(-90deg) translateZ(40px); }
+
+        .timer-container { width: 100%; background: #333; height: 16px; border-radius: 10px; overflow: hidden; margin: 10px 0; border: 2px solid #555; }
+        #timer-bar { width: 100%; height: 100%; background: var(--fluo-green); transition: width 1s linear; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h1 class="game-title">IL PERCORSO DELLE ALLEANZE</h1>
+        <button class="btn-action" onclick="showNameSetup(3)">3 GIOCATORI</button>
+        <button class="btn-action" onclick="showNameSetup(4)">4 GIOCATORI</button>
+        <button class="btn-action" onclick="showNameSetup(5)">5 GIOCATORI</button>
+    </div>
+
+    <div id="name-screen" style="display:none;">
+        <div class="modal-content" style="height: auto; max-height: 80vh;">
+            <h1 style="color:white; margin-bottom:15px;">NOMINA I TUOI EROI</h1>
+            <div id="inputs-container" style="width:100%"></div>
+            <button class="btn-action" onclick="initGame()">INIZIA MISSIONE</button>
+        </div>
+    </div>
+
+    <div id="word-modal" style="display:none;">
+        <div class="modal-content">
+            <h2 id="display-word" class="modal-header"></h2>
+            <div class="img-container"><img id="cell-img" src=""></div>
+            <div class="desc-box"><p id="display-desc"></p></div>
+            <div class="footer-modal">
+                <div class="timer-container"><div id="timer-bar"></div></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="timer-text" style="font-size:2.5rem; font-weight:900; color:var(--fluo-green);">60S</span>
+                    <button class="btn-action" style="background:var(--hero-red); padding:10px 30px;" onclick="closeWordModal()">CHIUDI</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h1 class="game-title">IL PERCORSO DELLE ALLEANZE</h1>
+    
+    <div class="main-container">
+        <div id="sidebar">
+            <div class="legend">
+                <div class="legend-item"><span>⚡</span> TURBO (+2)</div>
+                <div class="legend-item"><span>🌀</span> AMNESIA (-2)</div>
+                <div class="legend-item"><span>🛑</span> STOP (SALTA)</div>
+                <div class="legend-item"><span>🤝</span> TEAM (TRASCINA TUTTI GLI ALTRI QUI)</div>
+            </div>
+            <img id="cap-img" src="capitan.png">
+            <div id="cap-msg" class="cap-bubble">"TOCCA IL DADO, SOLDATO!"</div>
+        </div>
+        <div id="game-area">
+            <svg id="path-svg"><path id="main-path-line" d="" /></svg>
+        </div>
+    </div>
+
+    <div class="ui-panel">
+        <div id="turn-info" style="font-weight:900; font-size:1.6rem; color:#ccc; text-transform:uppercase;">PRONTI?</div>
+        <div class="dice-container" onclick="playTurn()">
+            <div id="dice-visual">
+                <div class="dice-face f-1">⚀</div><div class="dice-face f-2">⚁</div><div class="dice-face f-3">⚂</div>
+                <div class="dice-face f-4">⚃</div><div class="dice-face f-5">⚄</div><div class="dice-face f-6">⚅</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const nomiCaselle = [
+            "🏁", "AMORE", "LUOGO SICURO", "ABBRACCIO", "GUERRA", "ARTE", "DIVIETO", "PAURA", "AMNESIA", 
+            "DISGUSTO", "TURBO", "GIOIA", "STOP", "TRISTEZZA", "RABBIA", "KRYPTONITE", "TEAM", "AMNESIA", 
+            "TURBO", "NEMICO", "EROE", "TEAM", "SOGNO", "STOP", "DOLORE", "PIANTO", "STRANEZZA", "AMNESIA", 
+            "VIDEOGIOCHI", "TEAM", "BUCO NERO", "TURBO", "SPRECO", "STOP", "FIORE", "AMNESIA", "ANIMALI", "SPAVENTO", 
+            "TEAM", "TURBO", "SOTTOSOPRA", "STOP", "ALIENI", "ESPLOSIONE", "VANDALISMO", "AMICO", "LIKE", "🏆"
+        ];
+
+        const suggerimenti = {
+            "AMORE": "CHE COS'E' PER TE L'AMORE?", "LUOGO SICURO": "QUAL E' IL POSTO CHE TI FA SENTIRE PIU' AL SICURO? PERCHE'?",
+            "ABBRACCIO": "CHI VORRESTI ABBRACCIARE IN QUESTO MOMENTO E PERCHE'?", "GUERRA": "COSA PENSI QUANDO SENTI LA PAROLA GUERRA? SPIEGA.",
+            "ARTE": "TI PIACE DISEGNARE O CREARE QUALCOSA? PERCHE'?", "DIVIETO": "QUAL È UNA REGOLA CHE TI STA STRETTA E PERCHE'?",
+            "PAURA": "QUAL È LA TUA PAURA PIÙ GRANDE? SPIEGA.", "DISGUSTO": "CHE COS'È CHE PROPRIO NON SOPPORTI? PERCHE'?",
+            "GIOIA": "QUAL È LA COSA CHE TI RENDE PIÙ FELICE E PERCHE'?", "TRISTEZZA": "COSA FAI QUANDO TI SENTI TRISTE? SPIEGA.",
+            "RABBIA": "CHE COSA TI FA PERDERE LA PAZIENZA E PERCHE'?", "KRYPTONITE": "QUAL È IL TUO PUNTO DEBOLE?",
+            "NEMICO": "CHI È IL NEMICO PIÙ DIFFICILE DA SCONFIGGERE? SPIEGA.", "EROE": "CHI È IL TUO EROE NELLA VITA REALE? PERCHE'?",
+            "SOGNO": "QUAL È IL TUO SOGNO PIÙ GRANDE e PERCHE'?", "DOLORE": "COSA TI AIUTA A SUPERARE UN MOMENTO DIFFICILE? SPIEGA.",
+            "PIANTO": "QUANDO È STATA L'ULTIMA VOLTA CHE HAI PIANTO E PERCHE'?", "STRANEZZA": "QUAL È UNA TUA CARATTERISTICA PARTICOLARE?",
+            "VIDEOGIOCHI": "QUAL È IL TUO VIDEOGIOCO PREFERITO? PERCHE'?", "BUCO NERO": "TI SEI MAI SENTITO VUOTO O SENZA SPERANZA? COME MAI?",
+            "SPRECO": "COSA NON DOVREMMO MAI SPRECARE E PERCHE'?", "FIORE": "QUAL È IL TUO FIORE O PIANTA PREFERITA? SPIEGA IL PERCHE'.",
+            "ANIMALI": "QUALE ANIMALE TI RAPPRESENTA DI PIÙ E PERCHE'?", "SPAVENTO": "RACCONTA DI UN MOMENTO IN CUI TI SEI SPAVENTATO.",
+            "SOTTOSOPRA": "COSA FARESTI SE IL MONDO FOSSE AL CONTRARIO?", "ALIENI": "CREDI CHE ESISTANO ALTRE FORME DI VITA NELLO SPAZIO? COSA TE LO FA PENSARE?",
+            "ESPLOSIONE": "RACCONTA DI COSA TI FA ESPLODERE DALLA GIOIA.", "VANDALISMO": "PERCHÈ BISOGNA RISPETTARE LE COSE DI TUTTI?",
+            "AMICO": "CHI È IL TUO MIGLIORE AMICO E PER CHÈ?", "LIKE": "TI IMPORTA MOLTO DEL GIUDIZIO ALTRUI? PERCHE' SI/NO?",
+            "🏆": "VITTORIA! COSA PORTI NEL TUO ZAINO DEGLI EROI DOPO QUESTO VIAGGIO?"
+        };
+
+        const allianceCells = [16, 21, 29, 38], turboCells = [10, 18, 31, 39], stopCells = [12, 23, 33, 41], amnesiaCells = [8, 17, 27, 35];
+        let players = [], currentPlayerIndex = 0, timerInterval, isRolling = false;
+
+        function updateCapMessage(type, name) {
+            const msgs = {
+                'turn': `TOCCA A TE, ${name}! FATTI VALERE!`,
+                'amnesia': `${name}, AMNESIA! TORNA INDIETRO DI 2 CASELLE!`,
+                'turbo': `GRANDE SCATTO ${name}! AVANTI DI ALTRE 2 CASELLE!`,
+                'stop': `STOP, ${name}! DEVI RIPOSARE UN TURNO!`,
+                'team': `ALLEANZA! TUTTI I COMPAGNI RAGGIUNGONO ${name}!`,
+                'question': `${name}, RIFLETTI: L'ALLEANZA È LA NOSTRA FORZA!`,
+                'win': `MISSIONE COMPIUTA, ${name}! SEI UN VERO EROE!`
+            };
+            document.getElementById('cap-msg').innerText = msgs[type] || "";
+        }
+
+        function showNameSetup(n) {
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('name-screen').style.display = 'flex';
+            const cont = document.getElementById('inputs-container');
+            cont.innerHTML = "";
+            const icons = ['🦸‍♀️', '🦸‍♂️', '🤖', '🦇', '🕷️'];
+            for(let i=0; i<n; i++) {
+                cont.innerHTML += `
+                    <div style="margin:8px; display:flex; align-items:center; justify-content:center; gap:10px;">
+                        <span style="font-size:2rem">${icons[i]}</span>
+                        <input type="text" id="p-name-${i}" placeholder="NOME EROE ${i+1}" style="padding:10px; width:70%; font-weight:900; text-transform:uppercase; border-radius:10px;">
+                    </div>`;
+            }
+        }
+
+        function initGame() {
+            const icons = ['🦸‍♀️', '🦸‍♂️', '🤖', '🦇', '🕷️'];
+            document.querySelectorAll('#inputs-container input').forEach((inp, i) => {
+                players.push({ id: i, name: (inp.value || `EROE ${i+1}`).toUpperCase(), pos: 0, icon: icons[i], frozen: false, finished: false });
+            });
+            document.getElementById('name-screen').style.display = 'none';
+            drawPath();
+            updateTurnInfo();
+        }
+
+        function drawPath() {
+            const area = document.getElementById('game-area');
+            const rect = area.getBoundingClientRect();
+            const cols = 10, cellW = 62;
+            const pX = (rect.width - (cols * cellW)) / 11, pY = (rect.height - (5 * cellW)) / 6;
+            let d = "";
+
+            for (let i = 0; i < nomiCaselle.length; i++) {
+                const cell = document.createElement('div');
+                cell.className = `cell c-${i % 4}`;
+                if (i === 0) cell.classList.add('cell-start');
+                if (i === nomiCaselle.length - 1) cell.classList.add('cell-cup');
+                
+                let r = Math.floor(i / cols), c = i % cols;
+                if (r % 2 !== 0) c = (cols - 1) - c;
+                const x = pX + c * (cellW + pX), y = pY + r * (cellW + pY);
+                cell.style.left = x + 'px'; cell.style.top = y + 'px';
+                
+                if (i === 0) cell.innerHTML = "🏁";
+                else if (i === nomiCaselle.length - 1) cell.innerHTML = "🏆";
+                else if (turboCells.includes(i)) { cell.innerHTML = "⚡"; cell.classList.add('cell-turbo'); }
+                else if (amnesiaCells.includes(i)) { cell.innerHTML = "🌀"; cell.classList.add('cell-amnesia'); }
+                else if (stopCells.includes(i)) { cell.innerHTML = "🛑<span class='stop-text'>STOP</span>"; cell.classList.add('cell-stop'); }
+                else if (allianceCells.includes(i)) { cell.innerHTML = "🤝"; cell.classList.add('cell-bonus'); }
+                else { 
+                    cell.innerText = nomiCaselle[i]; 
+                    setTimeout(() => {
+                        let fs = 0.85; cell.style.fontSize = fs + "rem";
+                        while ((cell.scrollWidth > cell.offsetWidth) && fs > 0.4) {
+                            fs -= 0.05; cell.style.fontSize = fs + "rem";
+                        }
+                    }, 10);
+                }
+                area.appendChild(cell);
+                if (i === 0) d += `M ${x + 31} ${y + 31}`;
+                else d += ` L ${x + 31} ${y + 31}`;
+            }
+            document.getElementById('main-path-line').setAttribute("d", d);
+            players.forEach((p, i) => {
+                const t = document.createElement('div'); t.id = `token-${i}`; t.className = 'player-token'; t.innerHTML = p.icon; area.appendChild(t);
+            });
+            updatePositions();
+        }
+
+        function updatePositions() {
+            players.forEach((p, i) => {
+                const cells = document.querySelectorAll('.cell');
+                const c = cells[p.pos];
+                const t = document.getElementById(`token-${i}`);
+                t.style.left = (parseInt(c.style.left) + 10 + (i * 3)) + 'px';
+                t.style.top = (parseInt(c.style.top) + 8) + 'px';
+                t.style.opacity = p.finished ? "0.6" : (p.frozen ? "0.3" : "1");
+            });
+        }
+
+        function updateTurnInfo() {
+            if (players.every(p => p.finished)) {
+                document.getElementById('turn-info').innerText = "MISSIONE COMPIUTA!";
+                document.getElementById('cap-msg').innerText = "ECCELLENTE LAVORO DI SQUADRA, EROI!";
+                return;
+            }
+            const p = players[currentPlayerIndex];
+            if (p.finished) { nextTurn(); return; }
+            document.getElementById('turn-info').innerText = `TURNO: ${p.icon} ${p.name}`;
+            updateCapMessage('turn', p.name);
+        }
+
+        function playTurn() {
+            if (isRolling) return;
+            let p = players[currentPlayerIndex];
+            if (p.finished) { nextTurn(); return; }
+            if (p.frozen) { 
+                updateCapMessage('turn', p.name);
+                p.frozen = false; 
+                updatePositions(); 
+                setTimeout(nextTurn, 1500); 
+                return; 
+            }
+            isRolling = true;
+            const dice = document.getElementById('dice-visual');
+            const roll = Math.floor(Math.random() * 6) + 1;
+            const rots = { 1: "rotateY(0deg)", 2: "rotateY(-90deg)", 3: "rotateY(-180deg)", 4: "rotateY(90deg)", 5: "rotateX(-90deg)", 6: "rotateX(90deg)" };
+            dice.style.transform = `rotateX(${Math.random() * 360}deg) rotateY(${Math.random() * 360}deg)`;
+            setTimeout(() => { 
+                dice.style.transform = rots[roll]; 
+                setTimeout(() => { movePlayer(roll); isRolling = false; }, 400); 
+            }, 600);
+        }
+
+        async function movePlayer(s) {
+            let p = players[currentPlayerIndex];
+            for (let i = 0; i < s; i++) { 
+                if (p.pos < nomiCaselle.length - 1) { 
+                    p.pos++; 
+                    updatePositions(); 
+                    await new Promise(r => setTimeout(r, 650)); 
+                } 
+            }
+            setTimeout(() => checkLanding(p), 400);
+        }
+
+        async function checkLanding(p) {
+            if (amnesiaCells.includes(p.pos)) { 
+                updateCapMessage('amnesia', p.name); 
+                await new Promise(r => setTimeout(r, 1500)); 
+                for(let i=0; i<2; i++) {
+                    if(p.pos > 0) { p.pos--; updatePositions(); await new Promise(r => setTimeout(r, 650)); }
+                }
+                setTimeout(() => checkLanding(p), 600);
+                return; 
+            }
+            if (turboCells.includes(p.pos)) { 
+                updateCapMessage('turbo', p.name); 
+                await new Promise(r => setTimeout(r, 1500)); 
+                for(let i=0; i<2; i++) {
+                    if(p.pos < nomiCaselle.length - 1) { p.pos++; updatePositions(); await new Promise(r => setTimeout(r, 650)); }
+                }
+                setTimeout(() => checkLanding(p), 600);
+                return; 
+            }
+            if (stopCells.includes(p.pos)) { 
+                updateCapMessage('stop', p.name); 
+                p.frozen = true; 
+                setTimeout(nextTurn, 2000); 
+                return; 
+            }
+            if (allianceCells.includes(p.pos)) { 
+                updateCapMessage('team', p.name); 
+                await new Promise(r => setTimeout(r, 1500));
+                // TRASCINA TUTTI I GIOCATORI CHE NON HANNO FINITO
+                players.forEach(other => {
+                    if (!other.finished && other.pos < p.pos) { other.pos = p.pos; }
+                });
+                updatePositions();
+                setTimeout(() => checkLanding(p), 800);
+                return; 
+            }
+            if (p.pos === nomiCaselle.length - 1) { 
+                p.finished = true;
+                updatePositions();
+                updateCapMessage('win', p.name); 
+                openWordModal("🏆"); 
+                return; 
+            }
+            
+            const title = nomiCaselle[p.pos];
+            if (p.pos > 0 && suggerimenti[title]) { 
+                updateCapMessage('question', p.name); 
+                openWordModal(title); 
+            } else { nextTurn(); }
+        }
+
+        function openWordModal(t) {
+            const img = document.getElementById('cell-img');
+            let clean = t.replace(/\s+/g, '');
+            if (t === "🏆") img.src = "a.png";
+            else img.src = (clean === "KRYPTONITE" ? "KRYPTO" : clean) + ".jpeg";
+            img.style.display = "block";
+            document.getElementById('display-word').innerText = t;
+            document.getElementById('display-desc').innerText = suggerimenti[t] || "";
+            document.getElementById('word-modal').style.display = 'flex';
+            startTimer();
+        }
+
+        function startTimer() {
+            let tl = 60; const bar = document.getElementById('timer-bar');
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                tl--; document.getElementById('timer-text').innerText = tl + "S";
+                bar.style.width = (tl / 60 * 100) + "%";
+                if (tl <= 0) closeWordModal();
+            }, 1000);
+        }
+
+        function closeWordModal() { clearInterval(timerInterval); document.getElementById('word-modal').style.display = 'none'; nextTurn(); }
+        function nextTurn() { 
+            if (players.every(p => p.finished)) { updateTurnInfo(); return; }
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length; 
+            if (players[currentPlayerIndex].finished) { nextTurn(); } 
+            else { updateTurnInfo(); }
+        }
+    </script>
+</body>
+</html>
