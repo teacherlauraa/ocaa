@@ -356,7 +356,6 @@
             if (allianceCells.includes(p.pos)) { 
                 updateCapMessage('team', p.name); 
                 await new Promise(r => setTimeout(r, 1500));
-                // TRASCINA TUTTI I GIOCATORI CHE NON HANNO FINITO
                 players.forEach(other => {
                     if (!other.finished && other.pos < p.pos) { other.pos = p.pos; }
                 });
@@ -381,9 +380,17 @@
 
         function openWordModal(t) {
             const img = document.getElementById('cell-img');
-            let clean = t.replace(/\s+/g, '');
-            if (t === "🏆") img.src = "a.png";
-            else img.src = (clean === "KRYPTONITE" ? "KRYPTO" : clean) + ".jpeg";
+            // TRASFORMA IL NOME IN MINUSCOLO E TOGLIE SPAZI
+            let clean = t.replace(/\s+/g, '').toLowerCase();
+            
+            if (t === "🏆") {
+                img.src = "a.png";
+            } else {
+                // Se la casella è kryptonite, usa krypto, altrimenti usa il nome pulito
+                let fileName = (clean === "kryptonite" ? "krypto" : clean);
+                img.src = fileName + ".jpeg";
+            }
+
             img.style.display = "block";
             document.getElementById('display-word').innerText = t;
             document.getElementById('display-desc').innerText = suggerimenti[t] || "";
